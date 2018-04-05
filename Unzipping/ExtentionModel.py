@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Fri Sep  8 17:58:45 2017
-@author: nhermans &jheinsman
+@author: nhermans & jheinsman
 Files needed:
 .fit force extension of unzipping curve (corrected for offset + drift)
 sequence of unzipped DNA

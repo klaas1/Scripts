@@ -18,9 +18,8 @@ def find_param(Logfile, Param):
     for lines in Logfile:
         P =lines.split(' = ')
         if P[0]==Param:
-            print(lines)
             return P[1].strip('\n')
-    return -1
+    return False
 
 def count_nuc(folder):    
     Nuc,Tetra=np.array([]),np.array([])
