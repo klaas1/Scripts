@@ -1,0 +1,74 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Apr 23 14:35:29 2018
+
+@author: nhermans
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.patches
+from scipy      import optimize
+
+def read_data(Filename, Beadnumber):
+    """Open .dat/.fit files from magnetic tweezers"""
+    f = open(Filename, 'r')
+    #get headers
+    headers = f.readlines()[0]
+    headers = headers.split('\t')
+    #get data
+    f.seek(0) #seek to beginning of the file
+    data = f.readlines()[1:]
+    f.close()
+    X = np.array([])
+    Y = np.array([])
+    Z = np.array([])
+    for idx,item in enumerate(data):                                            #Get all the data from the fitfile
+        X = np.append(X,float(item.split()[headers.index('X'+str(Beadnumber)+' (um)')]))
+        Y = np.append(Y,float(item.split()[headers.index('Y'+str(Beadnumber)+' (um)')]))  
+        Z = np.append(Z,float(item.split()[headers.index('Z'+str(Beadnumber)+' (um)')]))
+    return X,Y,Z
+
+method_1 = 'algebraic'
+
+Filename = r'N:\Artur\analysis\2016\bare DNA\20160120 overstretching and twist\raw data\data_007.dat'
+#Filename = Filename.replace('\\', '\\\\') 
+fig , ax = plt.subplots()
+X,Y,Z = read_data(Filename, 20)
+#ax.plot(X,Y, zorder=0)
+
+# coordinates of the barycenter
+x_m = np.mean(X)
+y_m = np.mean(Y)
+
+# calculation of the reduced coordinates
+u = X - x_m
+v = Y - y_m
+
+# linear system defining the center (uc, vc) in reduced coordinates:
+#    Suu * uc +  Suv * vc = (Suuu + Suvv)/2
+#    Suv * uc +  Svv * vc = (Suuv + Svvv)/2
+Suv  = sum(u*v)
+Suu  = sum(u**2)
+Svv  = sum(v**2)
+Suuv = sum(u**2 * v)
+Suvv = sum(u * v**2)
+Suuu = sum(u**3)
+Svvv = sum(v**3)
+
+# Solving the linear system
+A = np.array([ [ Suu, Suv ], [Suv, Svv]])
+B = np.array([ Suuu + Suvv, Svvv + Suuv ])/2.0
+uc, vc = np.linalg.solve(A, B)
+
+xc_1 = x_m + uc
+yc_1 = y_m + vc
+
+# Calcul des distances au centre (xc_1, yc_1)
+Ri_1     = np.sqrt((X-xc_1)**2 + (Y-yc_1)**2)
+R_1      = np.mean(Ri_1)
+residu_1 = sum((Ri_1-R_1)**2)
+print(x_m,y_m)
+circle = plt.Circle((x_m,y_m), radius=R_1, zorder=10)
+ax.add_artist(circle)
+fig.show()
+
