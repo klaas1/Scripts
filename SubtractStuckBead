@@ -1,0 +1,69 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Thu May 03 09:53:13 2018
+
+@author: nhermans
+"""
+
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Apr 23 14:35:29 2018
+
+@author: nhermans
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+plt.close()
+
+def read_dat(Filename):
+    """Open .dat/.fit files from magnetic tweezers"""
+    f = open(Filename, 'r')
+    #get headers
+    headers = f.readlines()[0]
+    headers = headers.split('\t')
+    #get data
+    f.seek(0) #seek to beginning of the file
+    data = f.readlines()[1:]
+    f.close()
+    Z_all = np.array([[]])
+    Beadnumber = 0
+    bead = 0
+    while bead:    
+        Z = np.array([])
+        for idx,item in enumerate(data):                                            #Get all the data from the fitfile
+            try:
+                Z = np.append(Z,float(item.split()[headers.index('Z'+str(Beadnumber)+' (um)')]))
+            except:
+                bead = False
+        Z_all = np.append(Z_all,Z, axis=0)
+        Beadnumber+=1
+    return Z_all
+
+def write_dat(Filename, NewFile, ZeroBead):
+    """Open .dat/.fit files from magnetic tweezers"""
+    f = open(Filename, 'r')
+    #get headers
+    headers = f.readlines()[0]
+    headers = headers.split('\t')
+    #get data
+    f.seek(0) #seek to beginning of the file
+    data = f.readlines()[1:]
+    f.close()
+    Z_all = np.array([])
+    Beadnumber = 0
+    bead = 0
+    while bead:    
+        Z = np.array([])
+        for idx,item in enumerate(data):                                            #Get all the data from the fitfile
+            try:
+                item.split()[headers.index('Z'+str(Beadnumber)+' (um)')] = float(item.split()[headers.index('Z'+str(Beadnumber)+' (um)')])-ZeroBead[idx]
+            except:
+                bead = False
+        Z_all = np.append(Z_all,Z)
+        Beadnumber+=1
+    return Z_all
+
+DatFile = r'N:\Artur\analysis\2016\bare DNA\20160120 overstretching and twist\raw data\data_007.dat'
+
+Z_all=read_dat(DatFile)
