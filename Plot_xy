@@ -9,27 +9,18 @@ import matplotlib.pyplot as plt
 import os
 import re
  
-plt.close()
-
 def read_dat(Filename, Beadnumber):
     """Open .dat/.fit files from magnetic tweezers"""
     f = open(Filename, 'r')
     #get headers
     headers = f.readlines()[0]
     headers = headers.split('\t')
-    #get data
-    f.seek(0) #seek to beginning of the file
-    data = f.readlines()[1:]
     f.close()
-    Rot = np.array([])
-    X = np.array([])
-    Y = np.array([])
-    Z = np.array([])
-    for idx,item in enumerate(data):                                            #Get all the data from the fitfile
-        X = np.append(X,float(item.split()[headers.index('X'+str(Beadnumber)+' (um)')]))
-        Y = np.append(Y,float(item.split()[headers.index('Y'+str(Beadnumber)+' (um)')]))  
-        Z = np.append(Z,float(item.split()[headers.index('Z'+str(Beadnumber)+' (um)')]))
-        Rot = np.append(Rot,float(item.split()[headers.index('Stepper rot (turns)')]))
+    data = np.genfromtxt(Filename, skip_header = 1)
+    Rot = data[:,headers.index('Stepper rot (turns)')]
+    X = data[:,headers.index('X'+str(Beadnumber)+' (um)')]
+    Y = data[:,headers.index('Y'+str(Beadnumber)+' (um)')]
+    Z = data[:,headers.index('Z'+str(Beadnumber)+' (um)')]
     X=X[Rot != 0]
     Y=Y[Rot != 0]
     Z=Z[Rot != 0]
