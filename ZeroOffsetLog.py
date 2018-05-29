@@ -14,9 +14,9 @@ def change_file(Filename, Change_String):
     lines=f.readlines()
     for x in lines:
         P = x.split(' = ')
-        if P[0]==Change_String:
-            print(x)
-            x= Change_String + '= 0 \n' 
+        if P[0] == Change_String:
+            print(P[1])
+            x = Change_String + '= 0 \n' 
         n_f.write(x)
     f.close()
     n_f.close()
@@ -24,11 +24,7 @@ def change_file(Filename, Change_String):
     os.rename(NewFile,Filename)
     os.remove(Filename + '.old')
     
-def fixfolder(folder):
-    folder = folder.replace('\\', '\\\\') 
-    return folder
-
-folder = fixfolder( r'P:\NonEqData\test' )#folder with chromosome sequence files (note, do not put other files in this folder)
+folder = r'P:\18S FitFiles\wt_Regensburg_2017' #folder with chromosome sequence files (note, do not put other files in this folder)
 filenames = os.listdir(folder)
 os.chdir( folder )
 for myfile in filenames:

@@ -22,25 +22,13 @@ SequenceFile="G:\\klaas\\Unzipping\\18S_seq.txt"
 file_extension=".fit"
 FilePath=file_location+file_name+file_extension
 
+sequence=Tools.read_sequence(SequenceFile)
 Pars = Tools.default_pars()
 Force, Z, Time, Extension_nm = Tools.read_data(FilePath)
-
 Handles = Tools.Define_Handles(Select=True, Pull=True, DelBreaks=True, MinForce=2.5, MinZ=0, MedFilt=False)
 Force, Extension_nm, Time = Tools.handle_data(Force, Z, Time, Extension_nm, Handles, Pars)
 
-plt.scatter(Time, Extension_nm)
-plt.xlabel('T (seconds)')
-plt.ylabel('Extension [nm]')
-plt.show()
-
-#dG->NN calculator. Needs a sequence file, only the sequence in the direction of unzipping
-f = open(SequenceFile, 'r')
-sequence=f.read()
-sequence=sequence.rstrip()
-sequence=sequence.upper()
-f.close()
-
-GCcontent = func.GC_dG(sequence, window = 50) #Calls the function for calcultion of the GC content.
+GCcontent = func.GC_dG(sequence, window = 50) #Calls the function for calcultion of the GC content
 
 #split data in unzipping and annealing
 Force_df = Force - np.roll(Force,1)
@@ -52,87 +40,47 @@ forceup = Force[Force_df >= 0]
 forcedown = Force[Force_df < 0]
 
 #Fit ssDNA persistence length
-Fit_Z=[]
-Fit_F=[]
 MaxForce=np.max(Force)
 print(MaxForce)
 if MaxForce < 25: MaxForce=25
+Fit_Z = extensiondown[forcedown >= 20]
+Fit_F = forcedown[forcedown >= 20]
+Fit_Z = Fit_Z[Fit_F < MaxForce]
+Fit_F = Fit_F[Fit_F < MaxForce]
 
-for i in range(0,len(forcedown)):
-     if forcedown[i] >= 20 and forcedown[i] < MaxForce :
-            Fit_Z.append(extensiondown[i])
-            Fit_F.append(forcedown[i])
+popt = curve_fit(lambda f, p: func.fit_p(f, p, len(sequence)), Fit_F, Fit_Z, p0 = Pars['Pss_nm'])
 
-popt = curve_fit(lambda f, p: func.fit_p(f,p, len(sequence)),Fit_F,Fit_Z,p0=0.6)
+print(popt)
+Pars['Pss_nm'] = popt[0][0]
 
-Fitted_Z=[]
-for i in Fit_F:
-    Fitted_Z.append(func.fit_p(i,popt[0]))
-
-plt.scatter(Fit_Z, Fit_F)
-plt.scatter(Fitted_Z,Fit_F)
-plt.show()
-
-print(popt[0])
-PLss=popt
-
-#Some reference Curves
-WLC_2000 = []
-WLC_2000_FJC_6000 = []
-WLC_2000_FJC_4500 =[]
-WLC_2000_FJC_2600 =[]
-
-for i in Force:
-    WLC_2000.append(func.wlc(i))
-    WLC_2000_FJC_6000.append(func.wlc_fjc(i,len(sequence),Pars))
+#Histogram data: change extension to bp
+CLss_down_bp = (extensiondown-Pars['DNAds_nm']*Pars['CLds_bp']*func.wlc(forcedown, Pars))/(Pars['DNAss_nm']*2*func.fjc(forcedown, Pars))
+CLss_up_bp = (extensionup-Pars['DNAds_nm']*Pars['CLds_bp']*func.wlc(forceup, Pars))/(Pars['DNAss_nm']*2*func.fjc(forceup, Pars))
 
 #FE and histogram graph generator
-plt.clf() #Clear all graph plots
 #Legend creator for FE graph
 a  = plt.scatter(extensionup, forceup, color = 'blue', marker = 'o', s = 1, label = 'Pull')
 b  = plt.scatter(extensiondown, forcedown, color = 'green', marker = 'o', s = 1, label = 'Relax')
-c, = plt.plot(WLC_2000,Force, color = 'black', linewidth=1.0, label = "WLC ")
-#d, = plt.plot(WLC_2000_FJC_2600, Force, color = 'yellow', linewidth=1.0, label = 'DWLC 1.2 kbp')
-#e, = plt.plot(WLC_2000_FJC_4500, Force, color = 'orange', linewidth=1.0, label = 'DWLC 2.2 kbp')
-f, = plt.plot(WLC_2000_FJC_6000, Force, color = 'red',linewidth=1.0, label = 'DWLC')
+c, = plt.plot(func.wlc(Force, Pars)*Pars['DNAds_nm']*Pars['CLds_bp'],Force, color = 'black', linewidth=1.0, label = "WLC ")
+d, = plt.plot(func.wlc(Force, Pars)*Pars['DNAds_nm']*Pars['CLds_bp']+func.fjc(Force, Pars)*Pars['DNAss_nm']*len(sequence)*2, Force, color = 'red',linewidth=1.0, label = 'DWLC')
 
 #Graph plot parameters for FE graph
 plt.tick_params(direction = 'in', top = 'on', right = 'on')
 plt.xlabel('Extension [nm]')
 plt.ylabel('Force [pN]')
 plt.axis([0, 3000, 0, 25])
-plt.legend(handles=[a, b, c, f])
+plt.legend(handles=[a, b, c, d])
 plt.savefig('170707_63_FE_DWLC.pdf') #save file name for FE graph
 plt.show()
 
 #Contour length histogram generation
 basepairs = list(range(0, len(sequence)-2)) #for plotting only
 
-  #down generation
-CLss_down_array = list(range(0,len(extensiondown)))
-pnull=len(sequence)
-  
-for i in CLss_down_array:
-    CLss_down_array[i], cov = curve_fit(WLC_FJC, forcedown[i],extensiondown[i],p0=pnull)
-    if cov[0] < 1: pnull=cov[0]
-CLss_down_array = np.concatenate(CLss_down_array).ravel().tolist()
-
-#Up generation  
-CLss_up_array = list(range(0,len(extensionup)))
-
-for i in CLss_up_array:
-    CLss_up_array[i], cov = curve_fit(WLC_FJC, forceup[i],extensionup[i])
-    if cov[0] < 1: pnull=cov[0]
-CLss_up_array = np.concatenate(CLss_up_array).ravel().tolist()
-
-CLss_up_bp = [x/par['DNAss_nm']/2 for x in CLss_up_array]
-CLss_down_bp = [x/par['DNAss_nm']/2 for x in CLss_down_array]
-
 #Contour length histogram + GC-content creator
 fig, ax1 = plt.subplots()
 ax2 = ax1.twinx()
-ax1.hist(CLss_up_bp, bins = len(sequence)/20, color = 'blue', range = [0,len(sequence)] )
-ax1.hist(CLss_down_bp, bins = len(sequence)/20, color = 'green', range = [0,len(sequence)])
+ax1.hist(CLss_up_bp, bins = int(len(sequence) / 20), color = 'blue', range = [0,len(sequence)] )
+ax1.hist(CLss_down_bp, bins = int(len(sequence) / 20), color = 'green', range = [0,len(sequence)])
 ax2.plot(basepairs,GCcontent, 'r-', label = 'dG based on sequence', linewidth = 0.5)
 
 #Graph plot parameters for histogram
@@ -140,8 +88,8 @@ ax1.tick_params(top = 'on', direction = 'in')
 ax2.tick_params(direction = 'in')
 ax1.set_xlabel('# of unzipped basepairs')
 ax1.set_xlim((0,len(sequence)))
-ax1.set_yscale('log')
-ax1.set_ylim((0,10**4))
+ax1.set_yscale('symlog')
+#ax1.set_ylim((1,10**4))
 ax1.set_ylabel('Count', color='black')
 ax2.set_ylabel('deltaG (kT)', color='black')
 ax2.set_ylim(1,1.8)
