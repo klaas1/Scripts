@@ -9,6 +9,13 @@ import matplotlib.pyplot as plt
 import os
 import re
  
+RotationFile = r'N:\Artur\analysis\2016\bare DNA\20160120 overstretching and twist\raw data\data_007.dat'
+folder = r'G:\Klaas\Tweezers\DNA only\Rotation\20160120 overstretching and twist'
+filenames = os.listdir(folder)
+os.chdir(folder)
+fig , ax = plt.subplots()
+
+
 def read_dat(Filename, Beadnumber):
     """Open .dat/.fit files from magnetic tweezers"""
     f = open(Filename, 'r')
@@ -112,7 +119,7 @@ def fit_circle(X,Y):
     # Calcul des distances au centre (xc_1, yc_1)
     Ri_1     = np.sqrt((X-xc_1)**2 + (Y-yc_1)**2)
     R_1      = np.mean(Ri_1)
-    residu_1 = sum((Ri_1-R_1)**2)
+    #residu_1 = sum((Ri_1-R_1)**2)
     return x_m, y_m, R_1
 
 def read_log(Filename):
@@ -153,7 +160,7 @@ def log_pars(LogFile):
 def find_param(Logfile, Param):
     """Find a parameter in the .log file"""
     for lines in Logfile:
-        P =lines.split(' = ')
+        P = lines.split(' = ')
         if P[0]==Param:
             return P[1].strip('\n')
     print("<<<<<<<<<<", Param, "not found >>>>>>>>>>")
@@ -161,13 +168,7 @@ def find_param(Logfile, Param):
 
 Z_m_array = np.array([])
 r_array = np.array([])
-
-RotationFile = r'N:\Artur\analysis\2016\bare DNA\20160120 overstretching and twist\raw data\data_007.dat'
-#Filename = Filename.replace('\\', '\\\\') 
-folder = r'G:\Klaas\Tweezers\DNA only\Rotation\20160120 overstretching and twist'
-filenames = os.listdir(folder)
-os.chdir(folder)
-fig , ax = plt.subplots()
+StretchingModulus = np.array([])
 
 Filenames = []                                                                  #All .fit files    
 for filename in filenames:
@@ -183,21 +184,24 @@ for Filenum, Filename in enumerate(Filenames):
     #F,Z = breaks(F,Z)
     F,Z = maxforce(F,Z,0.3)
     X,Y,Z_Rot = read_dat(RotationFile, int(re.sub('[^0-9]','', Filename[-6:-4])))
-    ax.plot(X,Y, zorder=0)
     x_m, y_m, R_1 = fit_circle(X,Y)
-    Z_m = np.mean(Z)
+    #Z_m = np.mean(Z)
+    Z = np.sort(Z)
+    Z_m=np.mean(Z[0:20])
     print(Filename, 'Z = ', Z_m , 'R_1 = ', R_1)
     Z_m_array = np.append(Z_m_array, Z_m)
+    StretchingModulus = np.append(StretchingModulus, Pars['S_pN'])
+    if np.isnan(R_1): R_1 = 0.0001
     r_array = np.append(r_array, R_1*1000)
-    circle = plt.Circle((x_m,y_m), radius=R_1, zorder=10, color='r', alpha = 0.5)
+    circle = plt.Circle((x_m,y_m), radius=R_1*10, zorder=10, color='r', alpha = 0.5)
+    ax.plot( (X-np.mean(X))*10 + np.mean(X) ,(Y-np.mean(Y))*10 + np.mean(Y), zorder=0)
     show_shape(circle)
 
-#im = plt.imread(r"G:\Klaas\Tweezers\DNA only\Rotation\20160120 overstretching and twist\raw data\data_007_before.jpg")
-#implot = ax.imshow(im)
 fig.show()
+
 fig2 , ax2 = plt.subplots()
-ax2.scatter(Z_m_array,r_array)
-ax2.set_xlabel('Start Offset (nm)')
-ax2.set_ylabel('Radius circle (nm)')
-ax2.set_title("Histogram stepsizes stacking steps")
+ax2.scatter(StretchingModulus,Z_m_array, s=r_array, c=r_array, alpha=0.5)
+ax2.set_xlabel('Stretching Modulus (pN)')
+ax2.set_ylabel('Start Offset (nm)')
+ax2.set_title("Radius vs Stretching Modulus")
 fig2.show()
