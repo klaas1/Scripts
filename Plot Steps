@@ -1,0 +1,66 @@
+import matplotlib.pyplot as plt
+import numpy as np
+import os 
+
+def gauss(x, amp=1, x0=0, sigma=1):
+    """1D Gaussian"""
+    return amp*np.exp(-(x-x0)**2/(2*sigma**2))
+
+def read_data(Filename):
+    """Open .fit files from magnetic tweezers, returns F, Z, T, Z_Selected"""
+    f = open(Filename, 'r')
+    #get headers
+    headers = f.readlines()[0]
+    headers = headers.split('\t')
+    #get data
+    data = np.genfromtxt(Filename, skip_header = 1)
+    F = data[:,headers.index('F (pN)')]
+    Z = data[:,headers.index('z (um)')]*1000  #Z in nm
+    T = data[:,headers.index('T3_0')::]*1000
+    Z_Selected = data[:,headers.index('selected z (um)')]*1000
+    return F, Z, T, Z_Selected
+
+folder =  r'G:\Klaas\Tweezers\Reconstituted chromatin\Misc_601\Example'
+
+filenames = os.listdir(folder)
+os.chdir(folder)
+
+#Plotting a histogram of the stepsizes
+fig3 = plt.figure()
+ax5 = fig3.add_subplot(1,2,1)
+ax6 = fig3.add_subplot(1,2,2,sharey=ax5)
+
+Filenames = []                                                                  #All .fit files in folder  
+for filename in filenames:
+    if filename[-4:] == '.fit':
+        Filenames.append(filename)
+
+###############################################################################
+#############   Main script that runs thourgh all fitfiles in folder  #########
+###############################################################################
+fig3 = plt.figure()
+ax5 = fig3.add_subplot(1,2,1)
+ax6 = fig3.add_subplot(1,2,2)
+
+for Filenum, Filename in enumerate(Filenames):
+    F,Z,Fit,Z_Selected=read_data(Filename)
+    Z_Selected=Z_Selected[F<35]-np.nanmax(Z_Selected[F<35])
+    ax5.scatter(Z_Selected, F[F<35])
+    ax5.legend(loc='best', legend = str(len(Filename)))
+
+for i,row in enumerate(Fit.T[:]):
+    ax5.plot(row[F<35]-np.nanmax(Fit.T[-1,:][F<35]), F[F<35], alpha =0.5, linestyle=':', color='black')
+    
+x=np.linspace(0,35,100)
+   
+ax5.set_xlabel('Extension (bp)')
+ax5.set_ylabel('Force (pN)')
+ax5.set_title("Inner turn wrapping")
+
+ax6.set_xlabel('Probability density (AU)')
+ax6.plot(gauss(x, amp=0.5,x0=19,sigma=4),x)
+ax6.plot(gauss(x, amp=1,x0=19,sigma=4),x)
+plt.show()
+#fig3.tight_layout()
+#fig3.savefig(folder+r'\\'+'Hist.png')
+
