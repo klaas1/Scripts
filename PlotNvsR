@@ -9,9 +9,9 @@ import matplotlib.pyplot as plt
 
 def ruptureforce(N,r):
     kt=4.2
-    d=0.8
-    dFdt=0.5
-    kD0=4.6*10**-4
+    d=0.8               #Obtained by fitting 167 data AK
+    dFdt=0.5            #Typical loading rate between 0.2-1
+    kD0=4.6*10**-4      #obtained by fitting AK 167 data
     return (kt/d) * (np.log(r/N*dFdt)-np.log(kD0*kt/d))
 
 def wlc(force,Pars): #in nm/pN, as fraction of L
@@ -45,12 +45,12 @@ fig1 = plt.figure()
 ax1 = fig1.add_subplot(1,2,1)
 ax2 = fig1.add_subplot(1,2,2,sharey=ax1)    
 
-Nuc = 15
-r = np.arange(Nuc)+1
-N = r[::-1]
+Nuc = 15                #Total number of nucleosomes on the fiber
+r = np.arange(Nuc)+1    #number of ruptures
+N = r[::-1]             #number of Nucleosomes left
 
-Fp_Mt = ruptureforce(N,r)
-Fp_OT = ruptureforce(N,1)
+Fp_Mt = ruptureforce(N,r)   #Force Clamp data
+Fp_OT = ruptureforce(N,1)   #Velocity Clamp data
 startforce=10
 Pars = default_pars()
 Pars['L_bp']=Pars['L_bp']-(75*Nuc)
