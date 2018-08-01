@@ -1,0 +1,97 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Jul 31 09:10:20 2018
+
+@author: nhermans
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+def ruptureforce(N,r):
+    kt=4.2
+    d=0.8
+    dFdt=0.5
+    kD0=4.6*10**-4
+    return (kt/d) * (np.log(r/N*dFdt)-np.log(kD0*kt/d))
+
+def wlc(force,Pars): #in nm/pN, as fraction of L
+    """Calculates WLC in nm/pN, as a fraction the Contour Length.
+    Returns Z_WLC as fraction of L """
+    f = np.array(force)
+    return Pars['L_bp']*Pars['dsDNA_nm_bp']*(1 - 0.5*(np.sqrt(Pars['kBT_pN_nm']/(f*Pars['P_nm'])))+(f/Pars['S_pN']))
+
+def default_pars():
+    """Default fitting parameters, returns a {dict} with 'key'= paramvalue"""
+    Pars = {}
+    Pars['Filename'] = ''
+    Pars['L_bp']= 4140
+    Pars['P_nm'] = 50
+    Pars['S_pN'] = 1200
+    Pars['dsDNA_nm_bp']=0.34
+    Pars['kBT_pN_nm'] = 4.2 #pn/nm 
+    return Pars
+
+def generate_plot(Fp_Mt,startforce,Pars,shift=0):
+    Ext=np.array([])
+    f=np.array([])
+    for ix in Fp_Mt:
+        f=np.append(f,np.linspace(startforce,ix,int(np.round((ix-startforce)*5,0))))
+        Ext=np.append(Ext,wlc(np.linspace(startforce,ix,int(np.round((ix-startforce)*5,0))),Pars))
+        Pars['L_bp']= Pars['L_bp']+75
+        startforce=ix-shift
+    return f,Ext
+    
+fig1 = plt.figure()
+ax1 = fig1.add_subplot(1,2,1)
+ax2 = fig1.add_subplot(1,2,2,sharey=ax1)    
+
+Nuc=15
+r = np.arange(Nuc)+1
+N = r[::-1]
+
+Fp_Mt = ruptureforce(N,r)
+Fp_OT = ruptureforce(N,1)
+startforce=10
+Pars = default_pars()
+Pars['L_bp']=Pars['L_bp']-(75*Nuc)
+Fp_Mt = np.append(Fp_Mt,50)
+f,Ext = generate_plot(Fp_Mt,startforce,Pars)
+ax1.plot(Ext,f, label='N = ' + str(Nuc), linewidth=0.5, marker='.')
+
+Pars = default_pars()
+startforce=10
+Pars['L_bp']=Pars['L_bp']-(75*Nuc)
+Fp_OT=np.append(Fp_OT,50)
+f,Ext = generate_plot(Fp_OT,startforce,Pars,4)
+ax2.plot(Ext,f, label='N = ' + str(Nuc), linewidth=0.5, marker='.')
+
+Nuc = 5
+r = np.arange(Nuc)+1
+N = r[::-1]
+Pars = default_pars()
+
+Fp_Mt = ruptureforce(N,r)
+Fp_OT = ruptureforce(N,1)
+startforce = 10
+Pars = default_pars()
+Pars['L_bp']=Pars['L_bp']-(75*Nuc)
+Fp_Mt = np.append(Fp_Mt,50)
+f,Ext = generate_plot(Fp_Mt,startforce,Pars)
+ax1.plot(Ext,f, label='N = ' + str(Nuc), linewidth=0.5, marker='.')
+
+Pars = default_pars()
+startforce=10
+Pars['L_bp']=Pars['L_bp']-(75*Nuc)
+Fp_OT=np.append(Fp_OT,50)
+f,Ext = generate_plot(Fp_OT,startforce,Pars,4)
+ax2.plot(Ext,f, label='N = ' + str(Nuc), linewidth=0.5, marker='.')
+    
+ax1.set_xlabel('Extension (bp)')
+ax1.set_ylabel('Force (pN)')
+ax2.set_xlabel('Extension (bp)')
+#ax2.set_ylabel('Force (pN)')
+ax1.legend()
+ax1.set_title("r/N, Force Clamp")
+ax2.set_title("1/N, Velocity Clamp")
+ax2.legend()
+fig1.show()
