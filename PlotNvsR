@@ -45,7 +45,7 @@ fig1 = plt.figure()
 ax1 = fig1.add_subplot(1,2,1)
 ax2 = fig1.add_subplot(1,2,2,sharey=ax1)    
 
-Nuc=15
+Nuc = 15
 r = np.arange(Nuc)+1
 N = r[::-1]
 
