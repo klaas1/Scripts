@@ -9,9 +9,9 @@ import matplotlib.pyplot as plt
 
 def ruptureforce(N,r):
     kt=4.2
-    d=0.8               #Obtained by fitting 167 data AK
-    dFdt=0.5            #Typical loading rate between 0.2-1
-    kD0=4.6*10**-4      #obtained by fitting AK 167 data
+    d=.8
+    dFdt=1
+    kD0=5.8*10**-4
     return (kt/d) * (np.log(r/N*dFdt)-np.log(kD0*kt/d))
 
 def wlc(force,Pars): #in nm/pN, as fraction of L
@@ -24,16 +24,17 @@ def default_pars():
     """Default fitting parameters, returns a {dict} with 'key'= paramvalue"""
     Pars = {}
     Pars['Filename'] = ''
-    Pars['L_bp']= 4140
+    Pars['L_bp']= 4000
     Pars['P_nm'] = 50
-    Pars['S_pN'] = 1200
+    Pars['S_pN'] = 1000
     Pars['dsDNA_nm_bp']=0.34
     Pars['kBT_pN_nm'] = 4.2 #pn/nm 
     return Pars
 
-def generate_plot(Fp_Mt,startforce,Pars,shift=0):
+def generate_plot(Fp_Mt,Pars,shift=0):
     Ext=np.array([])
     f=np.array([])
+    startforce=min(Fp_Mt-5)
     for ix in Fp_Mt:
         f=np.append(f,np.linspace(startforce,ix,int(np.round((ix-startforce)*5,0))))
         Ext=np.append(Ext,wlc(np.linspace(startforce,ix,int(np.round((ix-startforce)*5,0))),Pars))
@@ -45,24 +46,23 @@ fig1 = plt.figure()
 ax1 = fig1.add_subplot(1,2,1)
 ax2 = fig1.add_subplot(1,2,2,sharey=ax1)    
 
-Nuc = 15                #Total number of nucleosomes on the fiber
-r = np.arange(Nuc)+1    #number of ruptures
-N = r[::-1]             #number of Nucleosomes left
+Nuc = 30
+r = np.arange(Nuc)+1
+N = r[::-1]
 
-Fp_Mt = ruptureforce(N,r)   #Force Clamp data
-Fp_OT = ruptureforce(N,1)   #Velocity Clamp data
-startforce=10
+Fp_Mt = ruptureforce(N,r)
+Fp_OT = ruptureforce(N,1)
+MaxForcePlot=max(Fp_Mt)+5
 Pars = default_pars()
 Pars['L_bp']=Pars['L_bp']-(75*Nuc)
-Fp_Mt = np.append(Fp_Mt,50)
-f,Ext = generate_plot(Fp_Mt,startforce,Pars)
+Fp_Mt = np.append(Fp_Mt,MaxForcePlot)
+f,Ext = generate_plot(Fp_Mt,Pars)
 ax1.plot(Ext,f, label='N = ' + str(Nuc), linewidth=0.5, marker='.')
 
 Pars = default_pars()
-startforce=10
 Pars['L_bp']=Pars['L_bp']-(75*Nuc)
-Fp_OT=np.append(Fp_OT,50)
-f,Ext = generate_plot(Fp_OT,startforce,Pars,4)
+Fp_OT=np.append(Fp_OT,MaxForcePlot)
+f,Ext = generate_plot(Fp_OT,Pars,4)
 ax2.plot(Ext,f, label='N = ' + str(Nuc), linewidth=0.5, marker='.')
 
 Nuc = 5
@@ -72,18 +72,16 @@ Pars = default_pars()
 
 Fp_Mt = ruptureforce(N,r)
 Fp_OT = ruptureforce(N,1)
-startforce = 10
 Pars = default_pars()
 Pars['L_bp']=Pars['L_bp']-(75*Nuc)
-Fp_Mt = np.append(Fp_Mt,50)
-f,Ext = generate_plot(Fp_Mt,startforce,Pars)
+Fp_Mt = np.append(Fp_Mt,MaxForcePlot)
+f,Ext = generate_plot(Fp_Mt,Pars)
 ax1.plot(Ext,f, label='N = ' + str(Nuc), linewidth=0.5, marker='.')
 
 Pars = default_pars()
-startforce=10
 Pars['L_bp']=Pars['L_bp']-(75*Nuc)
-Fp_OT=np.append(Fp_OT,50)
-f,Ext = generate_plot(Fp_OT,startforce,Pars,4)
+Fp_OT=np.append(Fp_OT,MaxForcePlot)
+f,Ext = generate_plot(Fp_OT,Pars,4)
 ax2.plot(Ext,f, label='N = ' + str(Nuc), linewidth=0.5, marker='.')
     
 ax1.set_xlabel('Extension (bp)')
