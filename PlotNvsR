@@ -34,7 +34,7 @@ def default_pars():
 def generate_plot(Fp_Mt,Pars,shift=0):
     Ext=np.array([])
     f=np.array([])
-    startforce=min(Fp_Mt-5)
+    startforce=0
     for ix in Fp_Mt:
         f=np.append(f,np.linspace(startforce,ix,int(np.round((ix-startforce)*5,0))))
         Ext=np.append(Ext,wlc(np.linspace(startforce,ix,int(np.round((ix-startforce)*5,0))),Pars))
