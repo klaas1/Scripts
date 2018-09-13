@@ -1,0 +1,93 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Sep  7 16:37:56 2018
+
+@author: nhermans
+"""
+import matplotlib
+matplotlib.rcParams['figure.figsize'] = (16, 9)
+import matplotlib.pyplot as plt
+import numpy as np
+import os 
+import pandas as pd
+
+folder =  r'P:\18S FitFiles\18S Fitfiles GJ fits\All_Wt\Compare'
+
+print('Origin:', folder)
+
+filenames = os.listdir(folder)
+os.chdir(folder)
+
+Pars = {}
+Pars['kBT_pN_nm'] = 4.2 #pn/nm 
+  
+def dG_browertoland(ln_dFdt_N, RFs, Pars, K_off = 5e9):
+    """ 
+    Linear fit of the BT plot (a + bx)
+    Calculates d (distance to transition) and K_d0 (energy of transition)
+    Calculates errors of the fit and the propagated error in the K_d and d
+    K0 is the 1/tau (lifetime) for the unbound state at 0 force (K_off)
+    For error propagation: http://teacher.nsrl.rochester.edu/phy_labs/AppendixB/AppendixB.html
+    """
+    Fit = np.polyfit(ln_dFdt_N, RFs, 1, full = False, cov = True) #(kt/d) * (np.log(r/N*dFdt)-np.log(kD0*kt/d))
+    a = Fit[0][0]   #=(kt/d)
+    b = Fit[0][1]   #=(kt/d)*(-np.log(kD0*kt/d))
+    d = Pars['kBT_pN_nm']/a
+    K_d0 = np.exp(-b/a)/a
+    
+    def d_err(a, d_a, Pars):
+        return Pars['kBT_pN_nm']/a*(d_a/a) 
+        
+    def k_D0_err(a, d_a, b, d_b, Pars):
+        d_ab = b/a*((d_b/b)**2+(d_a/a)**2)**(1/2)
+        d_e_ab = np.exp(-b/a)*d_ab
+        return 1/a*np.exp(-b/a)*((d_e_ab/np.exp(-a/b))**2+(d_a/a)**2)**(1/2) 
+    
+    a_err = np.sqrt(Fit[1][0,0])
+    b_err = np.sqrt(Fit[1][1,1])
+
+    D_err = d_err(a, a_err, Pars)
+    K_d0_err = k_D0_err(a, a_err, b, b_err, Pars)
+
+    Delta_G = -np.log(K_d0/K_off) #in k_BT    
+    Delta_G_err = K_d0_err/(K_d0)
+    return a, a_err, b, b_err, d, D_err, K_d0, K_d0_err, Delta_G, Delta_G_err  
+
+### Analysis of Brower-Towland and stepsize
+#Brower-Toland Analysis, the degenracy
+fig, ax = plt.subplots()
+ax.set_title("Brower-Toland analysis")
+
+Filenames = []                                                                  #All .fit files in folder  
+for filename in filenames:
+    if filename[-4:] == '.csv':
+        Filenames.append(filename)
+
+for Filename in Filenames:
+    data = pd.read_csv(Filename)
+    ln_dFdt_N, Force = data['ln(df/dt*R/N)'], data['Force']
+    #Remove Ruptures at extensions larger than contour length (ln gets nan value)
+    RFs = Force[ln_dFdt_N < 10e6].astype(float)
+    ln_dFdt_N = ln_dFdt_N[ln_dFdt_N < 10e6]
+    RFs = RFs[ln_dFdt_N > np.min(ln_dFdt_N)]
+    ln_dFdt_N = ln_dFdt_N[ln_dFdt_N > np.min(ln_dFdt_N)]      
+    x = np.linspace(np.nanmin(ln_dFdt_N), np.nanmax(ln_dFdt_N), 10)
+    K_off = 1e10
+    a, a_err, b, b_err, d, D_err, K_d0, K_d0_err, Delta_G, Delta_G_err = dG_browertoland(ln_dFdt_N, RFs, Pars, K_off)
+    
+    #    ax.plot(np.log(np.divide(A[:,2],A[:,1])), A[:,0], label='Data', color='red')
+    ax.scatter(ln_dFdt_N, RFs, label=Filename)
+    Subtitle = "d = " + str(np.round(d,1)) + "±" + str(np.round(D_err,1)) + " nm"
+    Subtitle = Subtitle + ", k_D(0) = {:.1e}".format(K_d0) + "±{:.1e}".format(K_d0_err)+" / sec"
+    Subtitle = Subtitle + ", Delta G=" + str(round(Delta_G,2)) + "±" +str(round(Delta_G_err,2)) + " k_BT"
+    ax.plot(x, a*x+b, lw=2, label=Subtitle)
+    #fig.suptitle(Subtitle)
+
+ax.set_xlabel("ln[(dF/dt) (R/N) (pN/s)]")
+ax.set_ylabel("Force (pN)")
+#ax.set_ylim(0,50)
+#ax.set_xlim(-3,4)
+ax.legend(loc='best', title='Slope:' + str(np.round(a,1)) + '±' + str(np.round(a_err,1)) + ', intersect:' + str(np.round(b,1)) + '±' + str(np.round(b_err,1)))
+   
+ax.plot(x, 1.3*x+19, color='green', lw=2, label='Result Brower-Toland')
+fig.savefig('BT_Steps_combined.png')
