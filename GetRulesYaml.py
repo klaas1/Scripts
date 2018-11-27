@@ -34,6 +34,7 @@ Placeholder = [0 for i in range(len(Keys)+1)]
 ###############################################################################
 for filename in Filenames:
     with open(filename,'r') as stream:
+        data=[]
         i=-1
         namecheck=0
         for line in stream:
@@ -44,22 +45,22 @@ for filename in Filenames:
                 line = line.replace('\\n','')
             if line.startswith(' ') == False and line.startswith('\n')==False:
                 i=i+1
-                Data.append(Placeholder.copy())
+                data.append(Placeholder.copy())
             if line.startswith(	'  Tooltip:'): 
                 namecheck=1
             if line.startswith(	'    Name:') and namecheck==1: 
                 split_line = line.split(':')
                 split_line[1].strip()
-                Data[i][0]=split_line[1]
+                data[i][0]=split_line[1]
                 print(split_line[1])
                 namecheck=0
             for key in Keys:
                 if line.startswith('    '+key): 
                     split_line = line.split(':')
                     split_line[1].strip()
-                    Data[i][Keys.index(key)+1] = split_line[1]
+                    data[i][Keys.index(key)+1] = split_line[1]
                     print(split_line[1])#,  Data[i][Keys.index(key)+1])
-                
+    Data=Data+data          
 Keys.insert(0,'Unit Name')
 df = pd.DataFrame.from_records(Data, columns=Keys)
 pd.DataFrame.to_csv(df, '_stats.csv')
