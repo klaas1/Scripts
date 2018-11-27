@@ -49,14 +49,14 @@ for filename in Filenames:
             if line.startswith(	'  Tooltip:'): #only gathers units with tooltip (aka buildable)
                 namecheck=1
             if line.startswith(	'    Name:') and namecheck==1: 
-                split_line = line.split(':')[1].replace(' ','')
+                split_line = line.split(':')[1].replace('\n','')
                 data[i][0]=split_line #gets name and puts it in the first collumn. Note: some sprites do not have a name, and give empty rows
                 print(split_line)
                 namecheck=0
             for key in Keys:   #gatgers info from keys, can be anything just add more keys
                 if line.startswith('  '+key): 
                     split_line = line.split(':')[1:]
-                    split_line = (''.join(split_line)).strip()
+                    split_line = (''.join(split_line)).strip().replace('\n','')
                     if data[i][Keys.index(key)+1]==0:
                         data[i][Keys.index(key)+1] = split_line
                     else: data[i][Keys.index(key)+1] = str(data[i][Keys.index(key)+1])+', '+str(split_line)
